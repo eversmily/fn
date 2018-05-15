@@ -199,7 +199,6 @@ func (f *Func) Update(patch *Route) {
 }
 
 type FuncFilter struct {
-	AppID string // this is exact match (important for security)
 	Image string // this is exact match
 
 	Cursor  string
