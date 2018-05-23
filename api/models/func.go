@@ -1,9 +1,20 @@
 package models
 
 import (
+	"net/url"
 	"time"
 
+	"github.com/fnproject/fn/api/id"
 	"github.com/go-openapi/strfmt"
+)
+
+var (
+	// these are vars so that they can be configured. these apply
+	// across function & trigger (resource config)
+
+	MaxMemory      uint64 = 8 * 1024 // 8GB
+	MaxTimeout     int32  = 300      // 5m
+	MaxIdleTimeout int32  = 3600     // 1h
 )
 
 // FuncWrapper makes jason purrty for a Func.
@@ -21,7 +32,7 @@ type Func struct {
 	// examples: hub.docker.io/me/myfunc, me/myfunc, me/func:0.0.1
 	Image string `json:"image" db:"image"`
 	// ResourceConfig specifies resource constraints.
-	ResourceConfig // embed
+	ResourceConfig // embed (TODO or not?)
 	// Config is the configuration passed to a function at execution time.
 	Config Config `json:"config" db:"config"`
 	// Annotations allow additional configuration of a function, these are not passed to the function.
@@ -55,6 +66,10 @@ type ResourceConfig struct {
 
 // SetDefaults sets zeroed field to defaults.
 func (f *Func) SetDefaults() {
+	if f.ID == "" {
+		f.ID = id.New().String()
+	}
+
 	if f.Memory == 0 {
 		f.Memory = DefaultMemory
 	}
@@ -87,6 +102,10 @@ func (f *Func) SetDefaults() {
 
 // Validate validates all field values, returning the first error, if any.
 func (f *Func) Validate() error {
+	if url.PathEscape(f.Name) != f.Name {
+		return ErrFuncsInvalidName
+	}
+
 	if f.Image == "" {
 		return ErrFuncsMissingImage
 	}
@@ -95,16 +114,16 @@ func (f *Func) Validate() error {
 		return ErrFuncsInvalidFormat
 	}
 
-	if f.Timeout <= 0 || f.Timeout > MaxSyncTimeout {
-		return ErrFuncsInvalidTimeout
+	if f.Timeout <= 0 || f.Timeout > MaxTimeout {
+		return ErrInvalidTimeout
 	}
 
 	if f.IdleTimeout <= 0 || f.IdleTimeout > MaxIdleTimeout {
-		return ErrFuncsInvalidIdleTimeout
+		return ErrInvalidIdleTimeout
 	}
 
-	if f.Memory < 1 || f.Memory > FuncMaxMemory {
-		return ErrFuncsInvalidMemory
+	if f.Memory < 1 || f.Memory > MaxMemory {
+		return ErrInvalidMemory
 	}
 
 	return f.Annotations.Validate()

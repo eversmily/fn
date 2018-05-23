@@ -21,13 +21,14 @@ func (s *Server) handleFuncsPut(c *gin.Context) {
 		handleErrorResponse(c, err)
 		return
 	}
-
-	fnc := c.MustGet(api.Func).(string)
-	if wfunc.Func.Name == "" {
-		// NOTE: this allows a user to use PUT to change the name, as well
-		// as implying the name if not provided.
-		wfunc.Func.Name = fnc
+	if wfunc.Func == nil {
+		handleErrorResponse(c, models.ErrFuncsMissingNew)
+		return
 	}
+
+	fn := c.Param(api.Func)
+	// TODO: what about name changes? PutFunc(ctx, name, func) ?
+	wfunc.Func.Name = fn
 
 	f, err := s.datastore.PutFunc(ctx, wfunc.Func)
 	if err != nil {

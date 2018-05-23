@@ -10,8 +10,8 @@ import (
 func (s *Server) handleFuncsGet(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	fnc := c.MustGet(api.Func).(string)
-	f, err := s.datastore.GetFunc(ctx, fnc)
+	fn := c.Param(api.Func)
+	f, err := s.datastore.GetFunc(ctx, fn)
 	if err != nil {
 		handleErrorResponse(c, err)
 		return

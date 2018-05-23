@@ -140,6 +140,30 @@ func (v *validator) GetCall(ctx context.Context, appName, callID string) (*model
 	return v.Datastore.GetCall(ctx, appName, callID)
 }
 
+func (v *validator) PutFunc(ctx context.Context, fn *models.Func) (*models.Func, error) {
+	if fn == nil {
+		return nil, models.ErrDatastoreEmptyFunc
+	}
+	if fn.Name == "" {
+		return nil, models.ErrDatastoreEmptyFuncName
+	}
+	return v.Datastore.PutFunc(ctx, fn)
+}
+
+func (v *validator) GetFunc(ctx context.Context, funcName string) (*models.Func, error) {
+	if funcName == "" {
+		return nil, models.ErrDatastoreEmptyFuncName
+	}
+	return v.Datastore.GetFunc(ctx, funcName)
+}
+
+func (v *validator) RemoveFunc(ctx context.Context, funcName string) error {
+	if funcName == "" {
+		return models.ErrDatastoreEmptyFuncName
+	}
+	return v.Datastore.RemoveFunc(ctx, funcName)
+}
+
 // GetDatabase returns the underlying sqlx database implementation
 func (v *validator) GetDatabase() *sqlx.DB {
 	return v.Datastore.GetDatabase()

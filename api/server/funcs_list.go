@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/base64"
 	"net/http"
 
 	"github.com/fnproject/fn/api/models"
@@ -22,8 +21,7 @@ func (s *Server) handleFuncsList(c *gin.Context) {
 
 	var nextCursor string
 	if len(funcs) > 0 && len(funcs) == filter.PerPage {
-		last := []byte(funcs[len(funcs)-1].ID)
-		nextCursor = base64.RawURLEncoding.EncodeToString(last)
+		nextCursor = funcs[len(funcs)-1].ID
 	}
 
 	c.JSON(http.StatusOK, funcsResponse{

@@ -2,7 +2,6 @@ package server
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -67,7 +66,7 @@ func (test *funcTestCase) run(t *testing.T, i int, buf *bytes.Buffer) {
 				t.Log(buf.String())
 				t.Errorf("Test %d: expected created_at to be set on func, it wasn't: %s", i, fn.CreatedAt)
 			}
-			if !(time.Time(fn.UpdatedAt)).Before(time.Now().Add(-1 * time.Hour)) {
+			if time.Time(fn.UpdatedAt).Before(time.Now().Add(-1 * time.Hour)) {
 				t.Log(buf.String())
 				t.Errorf("Test %d: expected updated_at to be set on func, it wasn't: %s", i, fn.UpdatedAt)
 			}
@@ -92,26 +91,29 @@ func TestFuncPut(t *testing.T) {
 		{ds, logs.NewMock(), http.MethodPut, "/v1/funcs/a", `{ }`, http.StatusBadRequest, models.ErrFuncsMissingNew},
 		{ds, logs.NewMock(), http.MethodPut, "/v1/funcs/a", `{ "image": "yo" }`, http.StatusBadRequest, models.ErrFuncsMissingNew},
 		{ds, logs.NewMock(), http.MethodPut, "/v1/funcs/a", `{ "func": { } }`, http.StatusBadRequest, models.ErrFuncsMissingImage},
-		{ds, logs.NewMock(), http.MethodPut, "/v1/funcs/a", `{ "func": { "image": "fnproject/fn-test-utils" } }`, http.StatusBadRequest, models.ErrFuncsMissingVersion},
-		{ds, logs.NewMock(), http.MethodPut, "/v1/funcs/a", `{ "func": { "image": "fnproject/fn-test-utils", "name": "&%$", "version":"0.0.1" } }`, http.StatusBadRequest, models.ErrFuncsInvalidName},
-		{ds, logs.NewMock(), http.MethodPut, "/v1/funcs/$", `{ "func": { "image": "fnproject/fn-test-utils", "version":"0.0.1" } }`, http.StatusBadRequest, models.ErrFuncsInvalidName},
-		{ds, logs.NewMock(), http.MethodPut, "/v1/funcs/a", `{ "func": { "image": "fnproject/fn-test-utils", "version": "0.0.1", "format": "wazzup" } }`, http.StatusBadRequest, models.ErrFuncsInvalidFormat},
-		{ds, logs.NewMock(), http.MethodPut, "/v1/funcs/a", `{ "func": { "image": "fnproject/fn-test-utils", "version": "0.0.1", "cpus": "-100" } }`, http.StatusBadRequest, models.ErrInvalidCPUs},
-		{ds, logs.NewMock(), http.MethodPut, "/v1/funcs/a", `{ "func": { "image": "fnproject/fn-test-utils", "version": "0.0.1", "timeout": 3601 } }`, http.StatusBadRequest, models.ErrInvalidTimeout},
-		{ds, logs.NewMock(), http.MethodPut, "/v1/funcs/a", `{ "func": { "image": "fnproject/fn-test-utils", "version": "0.0.1", "idle_timeout": 3601 } }`, http.StatusBadRequest, models.ErrInvalidIdleTimeout},
-		{ds, logs.NewMock(), http.MethodPut, "/v1/funcs/a", `{ "func": { "image": "fnproject/fn-test-utils", "version": "0.0.1", "memory": 100000000000000 } }`, http.StatusBadRequest, models.ErrInvalidMemory},
+		{ds, logs.NewMock(), http.MethodPut, "/v1/funcs/ ", `{ "func": { "image": "fnproject/fn-test-utils" } }`, http.StatusBadRequest, models.ErrFuncsInvalidName},
+		{ds, logs.NewMock(), http.MethodPut, "/v1/funcs/a", `{ "func": { "image": "fnproject/fn-test-utils", "format": "wazzup" } }`, http.StatusBadRequest, models.ErrFuncsInvalidFormat},
+		{ds, logs.NewMock(), http.MethodPut, "/v1/funcs/a", `{ "func": { "image": "fnproject/fn-test-utils", "cpus": "-100" } }`, http.StatusBadRequest, models.ErrInvalidCPUs},
+		{ds, logs.NewMock(), http.MethodPut, "/v1/funcs/a", `{ "func": { "image": "fnproject/fn-test-utils", "timeout": 3601 } }`, http.StatusBadRequest, models.ErrInvalidTimeout},
+		{ds, logs.NewMock(), http.MethodPut, "/v1/funcs/a", `{ "func": { "image": "fnproject/fn-test-utils", "idle_timeout": 3601 } }`, http.StatusBadRequest, models.ErrInvalidIdleTimeout},
+		{ds, logs.NewMock(), http.MethodPut, "/v1/funcs/a", `{ "func": { "image": "fnproject/fn-test-utils", "memory": 100000000000000 } }`, http.StatusBadRequest, models.ErrInvalidMemory},
 
-		// success
+		// success create & update
+		{ds, logs.NewMock(), http.MethodPut, "/v1/funcs/myfunc", `{ "func": { "image": "fnproject/fn-test-utils" } }`, http.StatusOK, nil},
+
 		// TODO(reed): discuss on #988 do we want to allow partial modifications still?
-		{ds, logs.NewMock(), http.MethodPut, "/v1/funcs/a", `{ "func": { "image": "fnproject/fn-test-utils", "name": "myfunc", "version":"0.0.1" } }`, http.StatusOK, nil},
+		// partial updates should work
 		{ds, logs.NewMock(), http.MethodPut, "/v1/funcs/myfunc", `{ "func": { "image": "fnproject/test" } }`, http.StatusOK, nil},
+		{ds, logs.NewMock(), http.MethodPut, "/v1/funcs/myfunc", `{ "func": { "format": "http" } }`, http.StatusOK, nil},
 		{ds, logs.NewMock(), http.MethodPut, "/v1/funcs/myfunc", `{ "func": { "cpus": "100m" } }`, http.StatusOK, nil},
 		{ds, logs.NewMock(), http.MethodPut, "/v1/funcs/myfunc", `{ "func": { "cpus": "0.2" } }`, http.StatusOK, nil},
-		{ds, logs.NewMock(), http.MethodPut, "/v1/funcs/myfunc", `{ "func": { "format": "http" } }`, http.StatusOK, nil},
-		// TODO(reed): should we enforce version unique-ness (note: docker does not)
+		{ds, logs.NewMock(), http.MethodPut, "/v1/funcs/myfunc", `{ "func": { "memory": 1000 } }`, http.StatusOK, nil},
+		{ds, logs.NewMock(), http.MethodPut, "/v1/funcs/myfunc", `{ "func": { "timeout": 10 } }`, http.StatusOK, nil},
+		{ds, logs.NewMock(), http.MethodPut, "/v1/funcs/myfunc", `{ "func": { "idle_timeout": 10 } }`, http.StatusOK, nil},
+		{ds, logs.NewMock(), http.MethodPut, "/v1/funcs/myfunc", `{ "func": { "config": {"k":"v"} } }`, http.StatusOK, nil},
+		{ds, logs.NewMock(), http.MethodPut, "/v1/funcs/myfunc", `{ "func": { "annotations": {"k":"v"} } }`, http.StatusOK, nil},
 
 		// test that partial update fails w/ same errors as create
-		{ds, logs.NewMock(), http.MethodPut, "/v1/funcs/myfunc", `{ "func": { "name": "&%$" } }`, http.StatusBadRequest, models.ErrFuncsInvalidName},
 		{ds, logs.NewMock(), http.MethodPut, "/v1/funcs/myfunc", `{ "func": { "format": "wazzup" } }`, http.StatusBadRequest, models.ErrFuncsInvalidFormat},
 		{ds, logs.NewMock(), http.MethodPut, "/v1/funcs/myfunc", `{ "func": { "cpus": "-100" } }`, http.StatusBadRequest, models.ErrInvalidCPUs},
 		{ds, logs.NewMock(), http.MethodPut, "/v1/funcs/myfunc", `{ "func": { "timeout": 3601 } }`, http.StatusBadRequest, models.ErrInvalidTimeout},
@@ -125,7 +127,7 @@ func TestFuncPut(t *testing.T) {
 func TestFuncDelete(t *testing.T) {
 	buf := setLogBuffer()
 
-	funcs := []*models.Func{{Name: "/myfunc"}}
+	funcs := []*models.Func{{Name: "myfunc"}}
 	commonDS := datastore.NewMockInit(funcs)
 
 	for i, test := range []struct {
@@ -172,27 +174,27 @@ func TestFuncList(t *testing.T) {
 	ds := datastore.NewMockInit(
 		[]*models.Func{
 			{
-				Name:    "myfunc",
-				Image:   "fnproject/fn-test-utils",
-				Version: "0.0.1",
+				ID:    "1",
+				Name:  "myfunc",
+				Image: "fnproject/fn-test-utils",
 			},
 			{
-				Name:    "myfunc1",
-				Image:   "fnproject/fn-test-utils",
-				Version: "0.0.1",
+				ID:    "2",
+				Name:  "myfunc1",
+				Image: "fnproject/fn-test-utils",
 			},
 			{
-				Name:    "myfunc2",
-				Image:   "fnproject/yo",
-				Version: "0.0.1",
+				ID:    "3",
+				Name:  "myfunc2",
+				Image: "fnproject/yo",
 			},
 		},
 	)
 	fnl := logs.NewMock()
 
-	r1b := base64.RawURLEncoding.EncodeToString([]byte("myfunc"))
-	r2b := base64.RawURLEncoding.EncodeToString([]byte("myfunc1"))
-	r3b := base64.RawURLEncoding.EncodeToString([]byte("myfunc2"))
+	r1b := "1"
+	r2b := "2"
+	r3b := "3"
 
 	srv := testServer(ds, &mqs.Mock{}, fnl, rnr, ServerTypeFull)
 
@@ -232,7 +234,7 @@ func TestFuncList(t *testing.T) {
 		} else {
 			// normal path
 
-			var resp routesResponse
+			var resp funcsResponse
 			err := json.NewDecoder(rec.Body).Decode(&resp)
 			if err != nil {
 				t.Errorf("Test %d: Expected response body to be a valid json object. err: %v", i, err)
@@ -253,11 +255,10 @@ func TestFuncGet(t *testing.T) {
 	rnr, cancel := testRunner(t)
 	defer cancel()
 
-	ds := datastore.NewMock([]*models.Func{
+	ds := datastore.NewMockInit([]*models.Func{
 		{
-			Name:    "myfunc",
-			Image:   "fnproject/fn-test-utils",
-			Version: "0.0.1",
+			Name:  "myfunc",
+			Image: "fnproject/fn-test-utils",
 		},
 	})
 	fnl := logs.NewMock()

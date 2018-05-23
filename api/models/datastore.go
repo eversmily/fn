@@ -60,8 +60,7 @@ type Datastore interface {
 
 	// PutFunc inserts a new function if one does not exist, applying any defaults necessary, or
 	// updates a function that exists under the same name. Returns ErrDatastoreEmptyFunc if func is nil,
-	// ErrDatastoreEmptyFuncName is func.Name is empty, ErrDatastoreEmptyImage if image is empty,
-	// ErrDatastoreEmptyVersion if version is empty.
+	// ErrDatastoreEmptyFuncName is func.Name is empty.
 	// TODO(reed): should we allow rename if id provided?
 	PutFunc(ctx context.Context, fn *Func) (*Func, error)
 

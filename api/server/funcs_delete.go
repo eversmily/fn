@@ -10,7 +10,8 @@ import (
 func (s *Server) handleFuncsDelete(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	err := s.datastore.RemoveFunc(ctx, c.MustGet(api.Func).(string))
+	fn := c.Param(api.Func)
+	err := s.datastore.RemoveFunc(ctx, fn)
 	if err != nil {
 		handleErrorResponse(c, err)
 		return

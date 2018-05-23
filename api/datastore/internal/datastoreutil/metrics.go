@@ -114,5 +114,29 @@ func (m *metricds) GetLog(ctx context.Context, appName, callID string) (io.Reade
 	return m.ds.GetLog(ctx, appName, callID)
 }
 
+func (m *metricds) PutFunc(ctx context.Context, fn *models.Func) (*models.Func, error) {
+	ctx, span := trace.StartSpan(ctx, "ds_put_func")
+	defer span.End()
+	return m.ds.PutFunc(ctx, fn)
+}
+
+func (m *metricds) GetFuncs(ctx context.Context, filter *models.FuncFilter) ([]*models.Func, error) {
+	ctx, span := trace.StartSpan(ctx, "ds_get_funcs")
+	defer span.End()
+	return m.ds.GetFuncs(ctx, filter)
+}
+
+func (m *metricds) GetFunc(ctx context.Context, funcName string) (*models.Func, error) {
+	ctx, span := trace.StartSpan(ctx, "ds_get_func")
+	defer span.End()
+	return m.ds.GetFunc(ctx, funcName)
+}
+
+func (m *metricds) RemoveFunc(ctx context.Context, funcName string) error {
+	ctx, span := trace.StartSpan(ctx, "ds_remove_func")
+	defer span.End()
+	return m.ds.RemoveFunc(ctx, funcName)
+}
+
 // instant & no context ;)
 func (m *metricds) GetDatabase() *sqlx.DB { return m.ds.GetDatabase() }
