@@ -20,9 +20,6 @@ type Func struct {
 	// Image is the fully qualified container registry address to execute.
 	// examples: hub.docker.io/me/myfunc, me/myfunc, me/func:0.0.1
 	Image string `json:"image" db:"image"`
-	// Version is a user specified version for this func. It should be unique
-	// (this is not enforced at the moment, however).
-	Version string `json:"version" db:"version"`
 	// ResourceConfig specifies resource constraints.
 	ResourceConfig // embed
 	// Config is the configuration passed to a function at execution time.
@@ -91,23 +88,23 @@ func (f *Func) SetDefaults() {
 // Validate validates all field values, returning the first error, if any.
 func (f *Func) Validate() error {
 	if f.Image == "" {
-		return ErrRoutesMissingImage
+		return ErrFuncsMissingImage
 	}
 
 	if f.Format != FormatDefault && f.Format != FormatHTTP && f.Format != FormatJSON && f.Format != FormatCloudEvent {
-		return ErrRoutesInvalidFormat
+		return ErrFuncsInvalidFormat
 	}
 
 	if f.Timeout <= 0 || f.Timeout > MaxSyncTimeout {
-		return ErrRoutesInvalidTimeout
+		return ErrFuncsInvalidTimeout
 	}
 
 	if f.IdleTimeout <= 0 || f.IdleTimeout > MaxIdleTimeout {
-		return ErrRoutesInvalidIdleTimeout
+		return ErrFuncsInvalidIdleTimeout
 	}
 
-	if f.Memory < 1 || f.Memory > RouteMaxMemory {
-		return ErrRoutesInvalidMemory
+	if f.Memory < 1 || f.Memory > FuncMaxMemory {
+		return ErrFuncsInvalidMemory
 	}
 
 	return f.Annotations.Validate()
@@ -157,7 +154,7 @@ func (f1 *Func) Equals(f2 *Func) bool {
 // Update updates fields in f with non-zero field values from new, and sets
 // updated_at if any of the fields change. 0-length slice Header values, and
 // empty-string Config values trigger removal of map entry.
-func (f *Func) Update(patch *Route) {
+func (f *Func) Update(patch *Func) {
 	original := f.Clone()
 
 	if patch.Image != "" {
