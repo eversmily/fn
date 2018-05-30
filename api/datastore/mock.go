@@ -201,8 +201,14 @@ func (m *mock) PutFunc(ctx context.Context, fn *models.Func) (*models.Func, erro
 	// update if exists
 	for _, f := range m.Funcs {
 		if f.Name == fn.Name {
-			f.Update(fn)
-			return f, f.Validate()
+			copy := f.Clone()
+			copy.Update(fn)
+			err := copy.Validate()
+			if err != nil {
+				return nil, err
+			}
+			*f = *copy
+			return f, nil
 		}
 	}
 

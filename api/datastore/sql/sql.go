@@ -760,14 +760,17 @@ func (ds *sqlStore) PutFunc(ctx context.Context, fn *models.Func) (*models.Func,
 				config = :config,
 				annotations = :annotations,
 				updated_at = :updated_at
-			WHERE name=:name;`)
+			WHERE id=:id;`)
 		}
 
 		_, err = tx.NamedExecContext(ctx, query, fn)
 		return err
 	})
 
-	return fn, err
+	if err != nil {
+		return nil, err
+	}
+	return fn, nil
 }
 
 func (ds *sqlStore) GetFuncs(ctx context.Context, filter *models.FuncFilter) ([]*models.Func, error) {

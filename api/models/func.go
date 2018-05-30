@@ -110,7 +110,9 @@ func (f *Func) Validate() error {
 		return ErrFuncsMissingImage
 	}
 
-	if f.Format != FormatDefault && f.Format != FormatHTTP && f.Format != FormatJSON && f.Format != FormatCloudEvent {
+	switch f.Format {
+	case FormatDefault, FormatHTTP, FormatJSON, FormatCloudEvent:
+	default:
 		return ErrFuncsInvalidFormat
 	}
 
