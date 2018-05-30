@@ -699,8 +699,8 @@ func (ds *sqlStore) PutFunc(ctx context.Context, fn *models.Func) (*models.Func,
 		query := tx.Rebind(`SELECT 1 FROM funcs WHERE name=?`)
 		row := tx.QueryRowxContext(ctx, query, fn.Name)
 
-		var dst *models.Func
-		err := row.StructScan(dst)
+		var dst models.Func
+		err := row.StructScan(&dst)
 		if err != nil && err != sql.ErrNoRows {
 			return err
 		} else if err == sql.ErrNoRows {
@@ -748,7 +748,7 @@ func (ds *sqlStore) PutFunc(ctx context.Context, fn *models.Func) (*models.Func,
 			if err != nil {
 				return err
 			}
-			fn = dst // set for query & to return
+			fn = &dst // set for query & to return
 
 			query = tx.Rebind(`UPDATE funcs SET
 				image = :image,
@@ -760,7 +760,7 @@ func (ds *sqlStore) PutFunc(ctx context.Context, fn *models.Func) (*models.Func,
 				config = :config,
 				annotations = :annotations,
 				updated_at = :updated_at
-			WHERE id=:id;`)
+			WHERE name=:name;`)
 		}
 
 		_, err = tx.NamedExecContext(ctx, query, fn)
@@ -1006,15 +1006,15 @@ func buildFilterCallQuery(filter *models.CallFilter) (string, []interface{}) {
 	var b bytes.Buffer
 	var args []interface{}
 
-	args = where(&b, args, "id<", filter.Cursor)
+	args = where(&b, args, "id<?", filter.Cursor)
 	if !time.Time(filter.ToTime).IsZero() {
-		args = where(&b, args, "created_at<", filter.ToTime.String())
+		args = where(&b, args, "created_at<?", filter.ToTime.String())
 	}
 	if !time.Time(filter.FromTime).IsZero() {
-		args = where(&b, args, "created_at>", filter.FromTime.String())
+		args = where(&b, args, "created_at>?", filter.FromTime.String())
 	}
-	args = where(&b, args, "app_id=", filter.AppID)
-	args = where(&b, args, "path=", filter.Path)
+	args = where(&b, args, "app_id=?", filter.AppID)
+	args = where(&b, args, "path=?", filter.Path)
 
 	fmt.Fprintf(&b, ` ORDER BY id DESC`) // TODO assert this is indexed
 	fmt.Fprintf(&b, ` LIMIT ?`)
